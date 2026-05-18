@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useDashboardStore } from './store/dashboardStore';
 import { Moon, Sun, Menu, X } from 'lucide-react';
 import DashboardCanvas from './components/DashboardCanvas';
+import SprintCanvas from './components/SprintCanvas';
 
 export default function App() {
   const { activeTab, setActiveTab, isDarkMode, toggleTheme } = useDashboardStore();
@@ -99,9 +100,9 @@ export default function App() {
         )}
       </header>
 
-      {/* FOREGROUND CANVAS */}
       <main className="relative z-30 flex-1 w-full max-w-5xl mx-auto p-4 md:p-8 mt-4 md:mt-12">
-        <DashboardCanvas />
+        {activeTab === 'routine' && <DashboardCanvas />}
+        {activeTab === 'sprint' && <SprintCanvas />}
       </main>
 
     </div>
