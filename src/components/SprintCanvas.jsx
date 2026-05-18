@@ -131,7 +131,7 @@ export default function SprintCanvas() {
     const task = tasks[selectedTaskIndex];
     const estMins = getMinutesBetween(task.startTime, task.endTime);
     
-    setTimeLeft(3);
+    setTimeLeft(estMins*60);
     setActualSeconds(0);
     setBreaches(0);
     setMicroLogs([]);
