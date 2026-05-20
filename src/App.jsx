@@ -4,6 +4,7 @@ import { Moon, Sun, Menu, X } from 'lucide-react';
 import DashboardCanvas from './components/DashboardCanvas';
 import SprintCanvas from './components/SprintCanvas';
 import CalendarCanvas from './components/CalendarCanvas';
+import OracleCanvas from './components/OracleCanvas';
 
 export default function App() {
   const { activeTab, setActiveTab, isDarkMode, toggleTheme } = useDashboardStore();
@@ -105,6 +106,7 @@ export default function App() {
         {activeTab === 'routine' && <DashboardCanvas />}
         {activeTab === 'sprint' && <SprintCanvas />}
         {activeTab === 'calendar' && <CalendarCanvas />}
+        {activeTab === 'skills' && <OracleCanvas />}
       </main>
 
     </div>
