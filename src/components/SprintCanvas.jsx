@@ -55,6 +55,7 @@ const playCyberAlarm = () => {
 };
 export default function SprintCanvas() {
   const { isDarkMode, userId } = useDashboardStore();
+  const token=localStorage.getItem('token');
   
   // Phase State: 'SELECTION' | 'RUNNING' | 'DEBRIEF'
   const [phase, setPhase] = useState('SELECTION');
@@ -80,7 +81,13 @@ export default function SprintCanvas() {
 
   // 1. Boot Sequence: Fetch today's tasks
   useEffect(() => {
-    fetch(`http://localhost:8080/api/v1/rituals/today/${userId}`)
+    fetch(`http://localhost:8080/api/v1/rituals/today/${userId}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}` // THE GATE PASS
+    }
+  })
       .then(res => res.json())
       .then(data => {
         setTasks(data.tasks || []);
@@ -171,7 +178,9 @@ export default function SprintCanvas() {
     try {
       await fetch(`http://localhost:8080/api/v1/rituals/${userId}/${currentDate}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+         },
         body: JSON.stringify(updatedTasks)
       });
       // Return to Selection Mode

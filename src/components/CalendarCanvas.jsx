@@ -17,9 +17,24 @@ export default function CalendarCanvas() {
   const mutedText = isDarkMode ? 'text-white/50' : 'text-black/50';
 
   useEffect(() => {
-    fetch(`http://localhost:8080/api/v1/rituals/history/${userId}`)
-      .then(res => res.json())
-      .then(data => {
+    const token = localStorage.getItem('token');
+    fetch(`http://localhost:8080/api/v1/rituals/history/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}` // THIS IS THE GATE PASS
+      }
+    })
+      .then(res => {
+        if (!res.ok) {
+          if (res.status === 403) {
+             throw new Error("403 FORBIDDEN: Invalid or missing JWT Passport.");
+          }
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then(data => { // <-- FIXED THE ROGUE 'f' HERE
         setRawHistory(data || []);
         setLoading(false);
       })
@@ -124,7 +139,6 @@ export default function CalendarCanvas() {
   return (
     <div className="flex flex-col gap-6 md:gap-8 w-full animate-in fade-in duration-700 relative pb-12">
       
-      {/* MOBILE SCROLLBAR HIDER & FIRE ANIMATION */}
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -136,7 +150,6 @@ export default function CalendarCanvas() {
         .animate-fire { display: inline-block; animation: duolingo-bounce 1.5s infinite ease-in-out; }
       `}</style>
 
-      {/* HEADER & FILTERS */}
       <div className={`border-b pb-4 flex flex-col md:flex-row md:justify-between md:items-end gap-4 ${accentBorder}`}>
         <div>
           <h2 className={`text-4xl md:text-6xl font-pixel tracking-widest uppercase ${accentText}`}>
@@ -145,7 +158,6 @@ export default function CalendarCanvas() {
           <span className={`font-pixel text-sm md:text-xl ${mutedText}`}>//: EXECUTION HEATMAP</span>
         </div>
         
-        {/* MOBILE FIX: Allow filters to wrap nicely on very small screens */}
         <div className="flex flex-wrap gap-2 font-pixel text-xs md:text-base">
           {[7, 30, 60, 180, 365].map(days => (
             <button 
@@ -165,9 +177,7 @@ export default function CalendarCanvas() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* LEFT COLUMN: STATS & CATEGORIES */}
         <div className="lg:col-span-1 flex flex-col gap-6">
-          {/* MOBILE FIX: Adjusted padding (p-4 md:p-6) */}
           <div className={`cut-corner-card border ${accentBorder} ${cardBg} p-4 md:p-6 flex flex-col gap-6`}>
             
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
@@ -209,12 +219,10 @@ export default function CalendarCanvas() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: HEATMAP */}
         <div className={`lg:col-span-2 cut-corner-card border ${accentBorder} ${cardBg} p-4 md:p-6 overflow-hidden`}>
           <h3 className={`font-pixel text-base md:text-lg mb-6 ${accentText}`}>//: EXECUTION GRID ({timeFilter} DAYS)</h3>
           
           {timeFilter === 7 ? (
-            // MOBILE FIX: Wrap in a swipeable container with hidden scrollbar
             <div className="w-full overflow-x-auto no-scrollbar pb-2">
               <div className="flex justify-between items-center min-w-[320px] md:min-w-[500px] gap-2">
                 {grid.map((day, idx) => (
@@ -240,7 +248,6 @@ export default function CalendarCanvas() {
               </div>
             </div>
           ) : (
-            // MOBILE FIX: Smaller squares on mobile (w-5 h-5 vs w-8 h-8)
             <div className="flex flex-wrap gap-1 md:gap-3">
               {grid.map((day, idx) => (
                 <button
@@ -257,11 +264,9 @@ export default function CalendarCanvas() {
         </div>
       </div>
 
-      {/* --- DEEP ANALYTICS --- */}
       <h3 className={`font-pixel text-lg md:text-xl mt-6 border-b pb-2 ${accentBorder} ${accentText}`}>//: DEEP ANALYTICS</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
         
-        {/* MOBILE FIX: Padding reduction & Text scaling */}
         <div className={`cut-corner-card border border-white/10 ${cardBg} p-4 md:p-6 flex flex-col justify-between`}>
           <div>
             <h4 className={`font-pixel text-xs md:text-sm ${mutedText} mb-1`}>[ 01 ] FOCUS INTEGRITY</h4>
@@ -335,10 +340,8 @@ export default function CalendarCanvas() {
 
       </div>
 
-      {/* MODAL: DAILY DRILL-DOWN */}
       {selectedDay && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
-          {/* MOBILE FIX: Modal snaps to bottom on mobile, centers on desktop */}
           <div className={`border-t-2 md:border-2 ${accentBorder} ${cardBg} p-6 md:p-8 w-full md:max-w-2xl relative animate-in slide-in-from-bottom-full md:zoom-in-95 rounded-t-2xl md:rounded-none md:cut-corner-card pb-12 md:pb-8`}>
             
             <button 

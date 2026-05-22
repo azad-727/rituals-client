@@ -1,16 +1,26 @@
 import React, { useState } from 'react';
 import { useDashboardStore } from './store/dashboardStore';
-import { Moon, Sun, Menu, X } from 'lucide-react';
+import { Moon, Sun, Menu, X, Power } from 'lucide-react'; // Added Power icon
 import DashboardCanvas from './components/DashboardCanvas';
 import SprintCanvas from './components/SprintCanvas';
 import CalendarCanvas from './components/CalendarCanvas';
 import OracleCanvas from './components/OracleCanvas';
+import AuthCanvas from './components/AuthCanvas';
 
 export default function App() {
-  const { activeTab, setActiveTab, isDarkMode, toggleTheme } = useDashboardStore();
+  // 1. Global Security & Theme State
+  const { isAuthenticated, logout, isDarkMode, toggleTheme } = useDashboardStore();
+  
+  // 2. Local Navigation State (Fixed the TypeError)
+  const [activeTab, setActiveTab] = useState('routine');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems = ['ROUTINE', 'CALENDAR', 'SPRINT', 'SKILLS'];
+
+  // 3. The Gatekeeper
+  if (!isAuthenticated) {
+    return <AuthCanvas />;
+  }
 
   return (
     <div className={`min-h-screen relative flex flex-col font-sans transition-colors duration-300 ${
@@ -57,7 +67,10 @@ export default function App() {
             </nav>
           </div>
 
-          <div className="flex items-center gap-4">
+          {/* UTILITIES & MOBILE TOGGLE */}
+          <div className="flex items-center gap-3 md:gap-4">
+            
+            {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
               className={`flex items-center justify-center p-2 md:p-3 border transition-colors ${
@@ -67,6 +80,19 @@ export default function App() {
               }`}
             >
               {isDarkMode ? <Sun className="w-5 h-5 md:w-6 md:h-6" /> : <Moon className="w-5 h-5 md:w-6 md:h-6" />}
+            </button>
+
+            {/* Logout / Disconnect Button */}
+            <button
+              onClick={logout}
+              title="Disconnect"
+              className={`hidden md:flex items-center justify-center p-2 md:p-3 border transition-colors ${
+                isDarkMode 
+                  ? 'border-red-500/50 hover:border-red-500 hover:bg-red-500/10 text-red-500' 
+                  : 'border-red-600/50 hover:border-red-600 hover:bg-red-600/10 text-red-600'
+              }`}
+            >
+              <Power className="w-5 h-5 md:w-6 md:h-6" />
             </button>
 
             {/* Mobile Menu Toggle */}
@@ -98,10 +124,19 @@ export default function App() {
                 </button>
                )
             })}
+            {/* Mobile Disconnect */}
+            <button
+              onClick={() => { logout(); setIsMobileMenuOpen(false); }}
+              className="font-pixel text-xl tracking-widest uppercase p-4 border-b text-red-500 hover:bg-red-500/10 flex justify-between items-center"
+            >
+              <span>[ DISCONNECT ]</span>
+              <Power className="w-5 h-5" />
+            </button>
           </nav>
         )}
       </header>
 
+      {/* MAIN CONTENT AREA */}
       <main className="relative z-30 flex-1 w-full max-w-5xl mx-auto p-4 md:p-8 mt-4 md:mt-12">
         {activeTab === 'routine' && <DashboardCanvas />}
         {activeTab === 'sprint' && <SprintCanvas />}

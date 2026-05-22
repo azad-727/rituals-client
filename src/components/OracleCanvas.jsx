@@ -18,9 +18,18 @@ export default function OracleCanvas() {
     setLoading(true);
     setInsight(null);
     
+    // FETCH THE TOKEN
+    const token = localStorage.getItem('token');
+    
     try {
-      // 1. Fetch raw history to build the payload
-      const histRes = await fetch(`http://localhost:8080/api/v1/rituals/history/${userId}`);
+      // 1. Fetch raw history to build the payload (ADDED AUTHORIZATION HEADER)
+      const histRes = await fetch(`http://localhost:8080/api/v1/rituals/history/${userId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        }
+      });
       const rawHistory = await histRes.json();
       
       // 2. Aggregate 7-day stats for the AI
@@ -52,17 +61,20 @@ export default function OracleCanvas() {
       
       const payload = {
         totalHours: (totalMins / 60).toFixed(1),
-        currentStreak: 0, // Simplified for payload
+        currentStreak: 0, 
         totalBreaches: breaches,
         integrityScore: totalMins === 0 ? 0 : Math.max(0, 100 - (breaches * 5)),
         completionRate: tasks === 0 ? 0 : Math.round((completed / tasks) * 100),
         categoryMinutes: categories
       };
 
-      // 3. Request the AI Analysis
+      // 3. Request the AI Analysis (ADDED AUTHORIZATION HEADER)
       const oracleRes = await fetch(`http://localhost:8080/api/v1/oracle/analyze`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(payload)
       });
       

@@ -19,6 +19,7 @@ const getMinutesFromMidnight = (time24) => {
 
 export default function DashboardCanvas() {
   const { isDarkMode, userId } = useDashboardStore();
+  const token = localStorage.getItem('token');
   
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +59,12 @@ export default function DashboardCanvas() {
   useEffect(() => {
     const bootSystem = async () => {
       try {
-        const templateRes = await fetch(`http://localhost:8080/api/v1/templates/${userId}`);
+        const templateRes = await fetch(`http://localhost:8080/api/v1/templates/${userId}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}` // THE GATE PASS
+    }});
         if (!templateRes.ok) {
           setHasMasterTemplate(false);
           setLoading(false);
@@ -69,7 +75,12 @@ export default function DashboardCanvas() {
         setMasterTemplate(templateData);
         setHasMasterTemplate(true);
 
-        const todayRes = await fetch(`http://localhost:8080/api/v1/rituals/today/${userId}`);
+        const todayRes = await fetch(`http://localhost:8080/api/v1/rituals/today/${userId}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}` // THE GATE PASS
+    }});
         const todayData = await todayRes.json();
         
         const sortedTasks = (todayData.tasks || []).sort((a, b) => 
@@ -94,7 +105,7 @@ export default function DashboardCanvas() {
     const taskPayload = { title: newTaskTitle, startTime: newTaskStart, endTime: newTaskEnd, category: "Deep Work" };
     try {
       const res = await fetch(`http://localhost:8080/api/v1/rituals/${userId}/${currentDate}/tasks`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(taskPayload)
+        method: 'POST', headers: { 'Content-Type': 'application/json','Authorization': `Bearer ${token}`}, body: JSON.stringify(taskPayload)
       });
       const updatedLog = await res.json();
       const sortedTasks = (updatedLog.tasks || []).sort((a, b) => (a.startTime || "00:00").localeCompare(b.startTime || "00:00"));
@@ -109,7 +120,7 @@ export default function DashboardCanvas() {
     setTasks(updatedTasks);
     try {
       await fetch(`http://localhost:8080/api/v1/rituals/${userId}/${currentDate}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedTasks)
+        method: 'PUT', headers: { 'Content-Type': 'application/json','Authorization': `Bearer ${token}` }, body: JSON.stringify(updatedTasks)
       });
     } catch (err) { console.error("Failed to sync task toggle:", err); }
   };
@@ -119,7 +130,7 @@ export default function DashboardCanvas() {
     setTasks(updatedTasks);
     try {
       await fetch(`http://localhost:8080/api/v1/rituals/${userId}/${currentDate}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedTasks)
+        method: 'PUT', headers: { 'Content-Type': 'application/json','Authorization': `Bearer ${token}` }, body: JSON.stringify(updatedTasks)
       });
     } catch (err) { console.error("Failed to sync task deletion:", err); }
   };

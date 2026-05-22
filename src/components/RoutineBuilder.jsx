@@ -59,7 +59,6 @@ export default function RoutineBuilder({ onComplete, existingTemplate }) {
     setTaskTitle(''); 
   };
 
-  // NEW: Delete Task Function for Builder
   const handleDeleteTask = (indexToRemove) => {
     const updatedDay = schedule[activeDay].filter((_, idx) => idx !== indexToRemove);
     setSchedule({ ...schedule, [activeDay]: updatedDay });
@@ -77,6 +76,9 @@ export default function RoutineBuilder({ onComplete, existingTemplate }) {
   const saveMasterTemplate = async () => {
     setIsSaving(true);
     
+    // FETCH THE TOKEN FOR THE BACKEND REQUESTS
+    const token = localStorage.getItem('token'); 
+    
     const payload = { 
       userId, 
       weeklySchedule: schedule, 
@@ -88,7 +90,10 @@ export default function RoutineBuilder({ onComplete, existingTemplate }) {
     try {
       const res = await fetch(`http://localhost:8080/api/v1/templates/${userId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // THE GATE PASS 
+        },
         body: JSON.stringify(payload)
       });
       
@@ -99,7 +104,10 @@ export default function RoutineBuilder({ onComplete, existingTemplate }) {
 
         await fetch(`http://localhost:8080/api/v1/rituals/${userId}/${localDate}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` // THE GATE PASS 
+          },
           body: JSON.stringify(todaysNewTasks)
         });
 
@@ -186,7 +194,6 @@ export default function RoutineBuilder({ onComplete, existingTemplate }) {
                     <span className={`font-pixel text-lg ${mutedText}`}>
                       [ {formatTime(task.startTime)} - {formatTime(task.endTime)} ]
                     </span>
-                    {/* NEW: TERMINATION BUTTON */}
                     <button 
                       onClick={() => handleDeleteTask(idx)}
                       className={`font-pixel text-red-500/50 hover:text-red-500 transition-colors`}
