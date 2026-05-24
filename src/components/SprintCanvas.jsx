@@ -81,7 +81,7 @@ export default function SprintCanvas() {
 
   // 1. Boot Sequence: Fetch today's tasks
   useEffect(() => {
-    fetch(`http://localhost:8080/api/v1/rituals/today/${userId}`, {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/today/${userId}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -176,7 +176,7 @@ export default function SprintCanvas() {
     task.microLogs = [...(task.microLogs || []), ...microLogs];
     
     try {
-      await fetch(`http://localhost:8080/api/v1/rituals/${userId}/${currentDate}`, {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/${userId}/${currentDate}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`

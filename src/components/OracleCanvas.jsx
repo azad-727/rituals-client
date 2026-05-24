@@ -23,7 +23,7 @@ export default function OracleCanvas() {
     
     try {
       // 1. Fetch raw history to build the payload (ADDED AUTHORIZATION HEADER)
-      const histRes = await fetch(`http://localhost:8080/api/v1/rituals/history/${userId}`, {
+      const histRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/history/${userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -69,7 +69,7 @@ export default function OracleCanvas() {
       };
 
       // 3. Request the AI Analysis (ADDED AUTHORIZATION HEADER)
-      const oracleRes = await fetch(`http://localhost:8080/api/v1/oracle/analyze`, {
+      const oracleRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/oracle/analyze`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

@@ -18,7 +18,7 @@ export default function CalendarCanvas() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    fetch(`http://localhost:8080/api/v1/rituals/history/${userId}`, {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/history/${userId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

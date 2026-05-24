@@ -59,7 +59,7 @@ export default function DashboardCanvas() {
   useEffect(() => {
     const bootSystem = async () => {
       try {
-        const templateRes = await fetch(`http://localhost:8080/api/v1/templates/${userId}`, {
+        const templateRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/templates/${userId}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -76,7 +76,7 @@ export default function DashboardCanvas() {
         setMasterTemplate(templateData);
         setHasMasterTemplate(true);
 
-        const todayRes = await fetch(`http://localhost:8080/api/v1/rituals/today/${userId}`, {
+        const todayRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/today/${userId}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -106,7 +106,7 @@ export default function DashboardCanvas() {
     if (!newTaskTitle.trim() || !newTaskStart || !newTaskEnd) return;
     const taskPayload = { title: newTaskTitle, startTime: newTaskStart, endTime: newTaskEnd, category: "Deep Work" };
     try {
-      const res = await fetch(`http://localhost:8080/api/v1/rituals/${userId}/${currentDate}/tasks`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/${userId}/${currentDate}/tasks`, {
         method: 'POST', 
         headers: { 'Content-Type': 'application/json','Authorization': `Bearer ${token}`}, 
         body: JSON.stringify(taskPayload)
@@ -123,7 +123,7 @@ export default function DashboardCanvas() {
     updatedTasks[indexToToggle].completed = !updatedTasks[indexToToggle].completed;
     setTasks(updatedTasks);
     try {
-      await fetch(`http://localhost:8080/api/v1/rituals/${userId}/${currentDate}`, {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/${userId}/${currentDate}`, {
         method: 'PUT', 
         headers: { 'Content-Type': 'application/json','Authorization': `Bearer ${token}` }, 
         body: JSON.stringify(updatedTasks)
@@ -135,7 +135,7 @@ export default function DashboardCanvas() {
     const updatedTasks = tasks.filter((_, idx) => idx !== indexToRemove);
     setTasks(updatedTasks);
     try {
-      await fetch(`http://localhost:8080/api/v1/rituals/${userId}/${currentDate}`, {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/${userId}/${currentDate}`, {
         method: 'PUT', 
         headers: { 'Content-Type': 'application/json','Authorization': `Bearer ${token}` }, 
         body: JSON.stringify(updatedTasks)

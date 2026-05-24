@@ -87,7 +87,7 @@ export default function RoutineBuilder({ onComplete, existingTemplate }) {
     };
 
     try {
-      const res = await fetch(`http://localhost:8080/api/v1/templates/${userId}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/templates/${userId}`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -101,7 +101,7 @@ export default function RoutineBuilder({ onComplete, existingTemplate }) {
         const todaysNewTasks = schedule[todayName] || [];
         const localDate = new Date().toLocaleDateString('en-CA');
 
-        await fetch(`http://localhost:8080/api/v1/rituals/${userId}/${localDate}`, {
+        await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/${userId}/${localDate}`, {
           method: 'PUT',
           headers: { 
             'Content-Type': 'application/json',

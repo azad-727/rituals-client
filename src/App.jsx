@@ -6,6 +6,7 @@ import SprintCanvas from './components/SprintCanvas';
 import CalendarCanvas from './components/CalendarCanvas';
 import OracleCanvas from './components/OracleCanvas';
 import AuthCanvas from './components/AuthCanvas';
+import ProfileCanvas from './components/ProfileCanvas';
 
 export default function App() {
   // 1. Global Security & Theme State
@@ -15,7 +16,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('routine');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const navItems = ['ROUTINE', 'CALENDAR', 'SPRINT', 'SKILLS'];
+  const navItems = ['ROUTINE', 'CALENDAR', 'SPRINT', 'SKILLS','PROFILE'];
 
   // 3. The Gatekeeper
   if (!isAuthenticated) {
@@ -142,6 +143,7 @@ export default function App() {
         {activeTab === 'sprint' && <SprintCanvas />}
         {activeTab === 'calendar' && <CalendarCanvas />}
         {activeTab === 'skills' && <OracleCanvas />}
+        {activeTab === 'profile' && <ProfileCanvas />}
       </main>
 
     </div>

@@ -25,7 +25,7 @@ export default function AuthCanvas() {
     const endpoint = isLogin ? '/api/v1/auth/login' : '/api/v1/auth/register';
     
     try {
-      const response = await fetch(`http://localhost:8080${endpoint}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -56,7 +56,7 @@ export default function AuthCanvas() {
         <div className={`absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 ${accentBorder} translate-x-1 translate-y-1`} />
 
         <h2 className={`text-4xl font-pixel tracking-widest uppercase mb-2 ${accentText}`}>
-          {isLogin ? 'SYSTEM LOGIN' : 'INITIALIZE'}
+          {isLogin ? 'RITUALS LOGIN' : 'INITIALIZE'}
         </h2>
         <p className={`font-pixel text-xs mb-8 ${isDarkMode ? 'text-white/50' : 'text-black/50'}`}>
           //: AWAITING CREDENTIALS
