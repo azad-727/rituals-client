@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDashboardStore } from '../store/dashboardStore';
 import RoutineBuilder from './RoutineBuilder';
+import autoprefixer from 'autoprefixer';
 
 const formatTime = (time24) => {
   if (!time24) return "";
@@ -197,9 +198,26 @@ export default function DashboardCanvas() {
             ))}
           </div>
 
-          <button onClick={() => setShowNightlyInterrogation(false)} className={`w-full font-pixel text-xl md:text-3xl py-4 md:py-6 transition-all hover:scale-[1.02] active:scale-95 ${isDarkMode ? 'bg-red-500 text-black' : 'bg-red-600 text-white'}`}>
-            [ FINALIZE & LOCK ]
-          </button>
+          <button onClick={async () =>{
+            try {
+              await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/${userId}/${currentDate}`,{
+                method: 'PUT',
+                header:{
+                  'Content-Type':'application/json',
+                  'Authorization':`Bearer ${token}`
+                },
+                body:JSON.stringify(tasks)
+              });
+              setShowNightlyInterrogation(false);
+              setRefreshTrigger(prev => prev + 1);
+              log.info("Telemetry data permanently archived. Analytics updated.");
+            }catch (err) {
+      console.error("Failed to permanently lock today's telemetry:", err);
+         }
+      }} 
+        className={`w-full font-pixel text-xl md:text-3xl py-4 md:py-6 transition-all hover:scale-[1.02] active:scale-95 ${isDarkMode ? 'bg-red-500 text-black' : 'bg-red-600 text-white'}`}>
+        [ FINALIZE & LOCK ]
+      </button>
         </div>
       </div>
     );
