@@ -198,26 +198,32 @@ export default function DashboardCanvas() {
             ))}
           </div>
 
-          <button onClick={async () =>{
-            try {
-              await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/${userId}/${currentDate}`,{
-                method: 'PUT',
-                header:{
-                  'Content-Type':'application/json',
-                  'Authorization':`Bearer ${token}`
-                },
-                body:JSON.stringify(tasks)
-              });
-              setShowNightlyInterrogation(false);
-              setRefreshTrigger(prev => prev + 1);
-              log.info("Telemetry data permanently archived. Analytics updated.");
-            }catch (err) {
+          <button 
+  onClick={async () => {
+    try {
+      // 1. Sync the final verified state to the database securely
+      await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/${userId}/${currentDate}`, {
+        method: 'PUT',
+        headers: { // 🌟 FIXED: Changed 'header' to 'headers'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(tasks)
+      });
+      
+      setShowNightlyInterrogation(false);
+      setRefreshTrigger(prev => prev + 1);
+      
+      // 🌟 FIXED: Changed Java 'log.info' to JavaScript 'console.log'
+      console.log("Telemetry data permanently archived. Analytics updated.");
+    } catch (err) {
       console.error("Failed to permanently lock today's telemetry:", err);
-         }
-      }} 
-        className={`w-full font-pixel text-xl md:text-3xl py-4 md:py-6 transition-all hover:scale-[1.02] active:scale-95 ${isDarkMode ? 'bg-red-500 text-black' : 'bg-red-600 text-white'}`}>
-        [ FINALIZE & LOCK ]
-      </button>
+    }
+  }} 
+  className={`w-full font-pixel text-xl md:text-3xl py-4 md:py-6 transition-all hover:scale-[1.02] active:scale-95 ${isDarkMode ? 'bg-red-500 text-black' : 'bg-red-600 text-white'}`}
+>
+  [ FINALIZE & LOCK ]
+</button>
         </div>
       </div>
     );
