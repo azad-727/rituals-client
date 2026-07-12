@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDashboardStore } from '../store/dashboardStore';
 
 export default function OracleCanvas() {
@@ -6,6 +6,13 @@ export default function OracleCanvas() {
   
   const [loading, setLoading] = useState(false);
   const [insight, setInsight] = useState(null);
+  const timeoutRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   const accentText = isDarkMode ? 'text-[#C3FF49]' : 'text-black';
   const accentBorder = isDarkMode ? 'border-[#C3FF49]' : 'border-black';
@@ -84,7 +91,7 @@ export default function OracleCanvas() {
       const parsedData = JSON.parse(data.projection);
       
       // Artificial delay for dramatic effect
-      setTimeout(() => {
+      timeoutRef.current = setTimeout(() => {
         setInsight(parsedData);
         setLoading(false);
       }, 1500);

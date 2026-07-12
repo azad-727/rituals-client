@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useDashboardStore } from '../store/dashboardStore';
 
 
@@ -71,6 +72,15 @@ export default function SprintCanvas() {
   const [breaches, setBreaches] = useState(0);
   const [microLogs, setMicroLogs] = useState([]);
   const [logInput, setLogInput] = useState('');
+  
+  // PiP State
+  const [isPipActive, setIsPipActive] = useState(false);
+  const pipWindowRef = useRef(null);
+
+  // Timer Ref State (To fix background throttling)
+  const sprintStartRef = useRef(null);
+  const initialTimeLeftRef = useRef(0);
+  const initialActualSecondsRef = useRef(0);
 
   // Styling Variables
   const accentText = isDarkMode ? 'text-[#C3FF49]' : 'text-black';
@@ -97,7 +107,6 @@ export default function SprintCanvas() {
   }, [userId]);
 
   // 2. Chrono-Engine & Breach Detection (Only active when RUNNING)
-  // 2. Chrono-Engine & Breach Detection
   useEffect(() => {
     let interval;
     const handleVisibilityChange = () => {
@@ -115,14 +124,20 @@ export default function SprintCanvas() {
     if (phase === 'RUNNING') {
       document.addEventListener("visibilitychange", handleVisibilityChange);
       interval = setInterval(() => {
+        if (!sprintStartRef.current) return;
+        
+        // FIX: Calculate elapsed time dynamically to completely bypass browser throttling in background tabs
+        const elapsed = Math.floor((Date.now() - sprintStartRef.current) / 1000);
+        setActualSeconds(initialActualSecondsRef.current + elapsed);
+        
         setTimeLeft(prev => {
-          if (prev <= 1) {
+          const newTime = initialTimeLeftRef.current - elapsed;
+          if (newTime <= 0) {
             handleCompleteSprint();
             return 0;
           }
-          return prev - 1;
+          return newTime;
         });
-        setActualSeconds(prev => prev + 1);
       }, 1000);
     }
 
@@ -138,10 +153,17 @@ export default function SprintCanvas() {
     const task = tasks[selectedTaskIndex];
     const estMins = getMinutesBetween(task.startTime, task.endTime);
     
-    setTimeLeft(estMins*60);
+    const estSecs = estMins * 60;
+    setTimeLeft(estSecs);
     setActualSeconds(0);
     setBreaches(0);
     setMicroLogs([]);
+    
+    // Sync references for bulletproof background timing
+    sprintStartRef.current = Date.now();
+    initialTimeLeftRef.current = estSecs;
+    initialActualSecondsRef.current = 0;
+
     setPhase('RUNNING');
 
     // Enter Fullscreen securely
@@ -163,6 +185,51 @@ export default function SprintCanvas() {
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(err => console.log(err));
     }
+    if (pipWindowRef.current) {
+      pipWindowRef.current.close();
+    }
+  };
+
+  const togglePip = async () => {
+    if (pipWindowRef.current) {
+      pipWindowRef.current.close();
+      return;
+    }
+    try {
+      let pipWindow;
+      if ('documentPictureInPicture' in window) {
+        pipWindow = await window.documentPictureInPicture.requestWindow({ width: 340, height: 180 });
+      } else {
+        pipWindow = window.open("", "MiniPlayer", "width=340,height=180,menubar=no,toolbar=no,location=no,status=no,titlebar=no");
+        if (!pipWindow) return alert("Popup blocked! Please allow popups for the Mini Player.");
+        pipWindow.document.body.innerHTML = '';
+      }
+
+      // Copy primary styles
+      [...document.styleSheets].forEach((styleSheet) => {
+        try {
+          const cssRules = [...styleSheet.cssRules].map((rule) => rule.cssText).join('');
+          const style = document.createElement('style');
+          style.textContent = cssRules;
+          pipWindow.document.head.appendChild(style);
+        } catch (e) {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet'; link.type = styleSheet.type; link.media = styleSheet.media; link.href = styleSheet.href;
+          pipWindow.document.head.appendChild(link);
+        }
+      });
+
+      // Inject tailwind & fonts for bulletproof styling in standard popups
+      const twScript = document.createElement('script'); twScript.src = "https://cdn.tailwindcss.com";
+      const fontStyle = document.createElement('style'); fontStyle.textContent = "@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap'); .font-pixel { font-family: 'Press Start 2P', cursive; } body { background: black; margin: 0; overflow: hidden; }";
+      pipWindow.document.head.appendChild(twScript);
+      pipWindow.document.head.appendChild(fontStyle);
+
+      pipWindow.addEventListener("pagehide", () => { pipWindowRef.current = null; setIsPipActive(false); });
+      pipWindow.addEventListener("beforeunload", () => { pipWindowRef.current = null; setIsPipActive(false); });
+      pipWindowRef.current = pipWindow;
+      setIsPipActive(true);
+    } catch (err) { console.error("Failed to open Mini Player", err); }
   };
 
   const finalizeAndSync = async () => {
@@ -282,6 +349,22 @@ export default function SprintCanvas() {
   // VIEW 2: IMMERSION SEQUENCE (RUNNING)
   // ==========================================
   if (phase === 'RUNNING') {
+    const pipContent = isPipActive && pipWindowRef.current ? createPortal(
+      <div className="w-full h-full flex flex-col items-center justify-center bg-black p-4 border border-[#C3FF49]/30">
+        <h3 className="font-pixel text-[#C3FF49] text-[10px] md:text-xs mb-2 text-center truncate w-full opacity-80">
+          {tasks[selectedTaskIndex]?.title}
+        </h3>
+        <h1 className="font-pixel text-[#C3FF49] text-4xl leading-none tracking-widest my-2 drop-shadow-[0_0_8px_rgba(195,255,73,0.6)]">
+          {formatSeconds(timeLeft)}
+        </h1>
+        <div className="flex justify-between w-full mt-2 opacity-50 px-2">
+          <p className="font-pixel text-white text-[8px] tracking-widest">ELAPSED: {formatSeconds(actualSeconds)}</p>
+          {breaches > 0 && <p className="font-pixel text-red-500 text-[8px] animate-pulse">{breaches} BREACHES</p>}
+        </div>
+      </div>,
+      pipWindowRef.current.document.body
+    ) : null;
+
     return (
       <div className="fixed inset-0 z-50 bg-black flex flex-col justify-between p-8 md:p-16 overflow-hidden">
         
@@ -336,13 +419,22 @@ export default function SprintCanvas() {
             />
           </form>
 
-          <button 
-            onClick={handleCompleteSprint}
-            className="w-full md:w-auto font-pixel text-2xl px-12 py-4 bg-red-600 text-white hover:bg-red-500 transition-colors"
-          >
-            [ ABORT / FINISH ]
-          </button>
+          <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+            <button 
+              onClick={togglePip}
+              className="w-full md:w-auto font-pixel text-sm md:text-xl px-6 py-4 border border-[#C3FF49] text-[#C3FF49] hover:bg-[#C3FF49]/10 transition-colors"
+            >
+              [ {isPipActive ? "CLOSE" : "OPEN"} MINI PLAYER ]
+            </button>
+            <button 
+              onClick={handleCompleteSprint}
+              className="w-full md:w-auto font-pixel text-xl md:text-2xl px-12 py-4 bg-red-600 text-white hover:bg-red-500 transition-colors"
+            >
+              [ ABORT / FINISH ]
+            </button>
+          </div>
         </div>
+        {pipContent}
       </div>
     );
   }

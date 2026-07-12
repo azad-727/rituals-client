@@ -45,7 +45,9 @@ export default function DashboardCanvas() {
   const mutedText = isDarkMode ? 'text-white/50' : 'text-black/50';
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    let timeoutId;
+    
+    const tick = () => {
       const nowStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
       const currentMins = getMinutesFromMidnight(nowStr);
       setCurrentTimeMinutes(currentMins);
@@ -53,8 +55,24 @@ export default function DashboardCanvas() {
       if (currentMins >= 1320 && !showNightlyInterrogation) {
         setShowNightlyInterrogation(true);
       }
-    }, 60000);
-    return () => clearInterval(interval);
+      
+      // Calculate exact milliseconds until the next minute boundary to prevent clock drift
+      const msUntilNextMinute = 60000 - (Date.now() % 60000);
+      timeoutId = setTimeout(tick, msUntilNextMinute);
+    };
+
+    tick(); // Run immediately
+
+    // Aggressively resync the clock whenever the user returns to this tab
+    const handleVisibility = () => {
+      if (!document.hidden) tick();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [showNightlyInterrogation]);
 
   useEffect(() => {
@@ -121,7 +139,22 @@ export default function DashboardCanvas() {
 
   const handleToggleTask = async (indexToToggle) => {
     const updatedTasks = [...tasks];
-    updatedTasks[indexToToggle].completed = !updatedTasks[indexToToggle].completed;
+    const task = updatedTasks[indexToToggle];
+    task.completed = !task.completed;
+    
+    // FIX: If marked as complete manually, inject the assigned hours into actual time spent.
+    if (task.completed) {
+      if (!task.actualMinutesSpent || task.actualMinutesSpent === 0) {
+        const startMins = getMinutesFromMidnight(task.startTime);
+        const endMins = getMinutesFromMidnight(task.endTime);
+        let diff = endMins - startMins;
+        task.actualMinutesSpent = diff > 0 ? diff : 60;
+      }
+    } else {
+      // If unchecked, zero out the actual time so it doesn't artificially inflate stats.
+      task.actualMinutesSpent = 0;
+    }
+
     setTasks(updatedTasks);
     try {
       await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/${userId}/${currentDate}`, {
@@ -201,7 +234,6 @@ export default function DashboardCanvas() {
           <button 
   onClick={async () => {
     try {
-      // 1. Sync the final verified state to the database securely
       await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/${userId}/${currentDate}`, {
         method: 'PUT',
         headers: { // 🌟 FIXED: Changed 'header' to 'headers'
@@ -214,7 +246,6 @@ export default function DashboardCanvas() {
       setShowNightlyInterrogation(false);
       setRefreshTrigger(prev => prev + 1);
       
-      // 🌟 FIXED: Changed Java 'log.info' to JavaScript 'console.log'
       console.log("Telemetry data permanently archived. Analytics updated.");
     } catch (err) {
       console.error("Failed to permanently lock today's telemetry:", err);
