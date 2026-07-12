@@ -148,52 +148,10 @@ export default function SprintCanvas() {
   }, [phase, lockdownMode]); // Added lockdownMode to dependencies
   // --- ACTIONS ---
 
-  const initiateSprint = () => {
-    if (selectedTaskIndex === null) return;
-    const task = tasks[selectedTaskIndex];
-    const estMins = getMinutesBetween(task.startTime, task.endTime);
-    
-    const estSecs = estMins * 60;
-    setTimeLeft(estSecs);
-    setActualSeconds(0);
-    setBreaches(0);
-    setMicroLogs([]);
-    
-    // Sync references for bulletproof background timing
-    sprintStartRef.current = Date.now();
-    initialTimeLeftRef.current = estSecs;
-    initialActualSecondsRef.current = 0;
-
-    setPhase('RUNNING');
-
-    // Enter Fullscreen securely
-    if (document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen().catch(err => console.log("Fullscreen blocked"));
-    }
-  };
-
-  const handleLogSubmit = (e) => {
-    e.preventDefault();
-    if (!logInput.trim()) return;
-    setMicroLogs(prev => [...prev, logInput]);
-    setLogInput('');
-  };
-
-  const handleCompleteSprint = () => {
-    playCyberAlarm();
-    setPhase('DEBRIEF');
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(err => console.log(err));
-    }
-    if (pipWindowRef.current) {
-      pipWindowRef.current.close();
-    }
-  };
-
   const togglePip = async () => {
     if (pipWindowRef.current) {
-      pipWindowRef.current.close();
-      return;
+      // If it's already open, we don't want to close it when auto-calling from initiateSprint
+      // But if they click the button, we do. So let's pass a parameter.
     }
     try {
       let pipWindow;
@@ -201,7 +159,10 @@ export default function SprintCanvas() {
         pipWindow = await window.documentPictureInPicture.requestWindow({ width: 340, height: 180 });
       } else {
         pipWindow = window.open("", "MiniPlayer", "width=340,height=180,menubar=no,toolbar=no,location=no,status=no,titlebar=no");
-        if (!pipWindow) return alert("Popup blocked! Please allow popups for the Mini Player.");
+        if (!pipWindow) {
+          console.warn("Popup blocked! Please allow popups for the Mini Player.");
+          return;
+        }
         pipWindow.document.body.innerHTML = '';
       }
 
@@ -230,6 +191,61 @@ export default function SprintCanvas() {
       pipWindowRef.current = pipWindow;
       setIsPipActive(true);
     } catch (err) { console.error("Failed to open Mini Player", err); }
+  };
+
+  const initiateSprint = () => {
+    if (selectedTaskIndex === null) return;
+    const task = tasks[selectedTaskIndex];
+    const estMins = getMinutesBetween(task.startTime, task.endTime);
+    
+    const estSecs = estMins * 60;
+    setTimeLeft(estSecs);
+    setActualSeconds(0);
+    setBreaches(0);
+    setMicroLogs([]);
+    
+    // Sync references for bulletproof background timing
+    sprintStartRef.current = Date.now();
+    initialTimeLeftRef.current = estSecs;
+    initialActualSecondsRef.current = 0;
+
+    setPhase('RUNNING');
+    
+    // Auto-pop out the PiP mini player!
+    if (!pipWindowRef.current) {
+      togglePip();
+    }
+
+    // Enter Fullscreen securely
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(err => console.log("Fullscreen blocked"));
+    }
+  };
+
+  const handleLogSubmit = (e) => {
+    e.preventDefault();
+    if (!logInput.trim()) return;
+    setMicroLogs(prev => [...prev, logInput]);
+    setLogInput('');
+  };
+
+  const handleCompleteSprint = () => {
+    playCyberAlarm();
+    setPhase('DEBRIEF');
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(err => console.log(err));
+    }
+    if (pipWindowRef.current) {
+      pipWindowRef.current.close();
+    }
+  };
+
+  const togglePipManual = () => {
+    if (pipWindowRef.current) {
+      pipWindowRef.current.close();
+      return;
+    }
+    togglePip();
   };
 
   const finalizeAndSync = async () => {
@@ -421,7 +437,7 @@ export default function SprintCanvas() {
 
           <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
             <button 
-              onClick={togglePip}
+              onClick={togglePipManual}
               className="w-full md:w-auto font-pixel text-sm md:text-xl px-6 py-4 border border-[#C3FF49] text-[#C3FF49] hover:bg-[#C3FF49]/10 transition-colors"
             >
               [ {isPipActive ? "CLOSE" : "OPEN"} MINI PLAYER ]
