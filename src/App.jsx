@@ -3,6 +3,7 @@ import { useDashboardStore } from './store/dashboardStore';
 import { Moon, Sun, Menu, X, Power } from 'lucide-react'; // Added Power icon
 import DashboardCanvas from './components/DashboardCanvas';
 import SprintCanvas from './components/SprintCanvas';
+import PulseCanvas from './components/PulseCanvas';
 import CalendarCanvas from './components/CalendarCanvas';
 import OracleCanvas from './components/OracleCanvas';
 import AuthCanvas from './components/AuthCanvas';
@@ -16,7 +17,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('routine');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const navItems = ['ROUTINE', 'CALENDAR', 'SPRINT', 'SKILLS','PROFILE'];
+  const navItems = ['ROUTINE', 'PULSE', 'CALENDAR', 'SPRINT', 'SKILLS','PROFILE'];
 
   // 3. The Gatekeeper
   if (!isAuthenticated) {
@@ -140,6 +141,7 @@ export default function App() {
       {/* MAIN CONTENT AREA */}
       <main className="relative z-30 flex-1 w-full max-w-5xl mx-auto p-4 md:p-8 mt-4 md:mt-12">
         {activeTab === 'routine' && <DashboardCanvas />}
+        {activeTab === 'pulse' && <PulseCanvas />}
         {activeTab === 'sprint' && <SprintCanvas />}
         {activeTab === 'calendar' && <CalendarCanvas />}
         {activeTab === 'skills' && <OracleCanvas />}
