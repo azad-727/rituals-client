@@ -585,8 +585,12 @@ export default function PulseCanvas() {
                 </span>
 
                 {/* Time */}
-                <span className={`font-pixel text-[10px] md:text-xs shrink-0 ${isDarkMode ? 'text-white/20' : 'text-black/20'}`}>
-                  {formatTime(task.startTime)}
+                <span className={`font-pixel text-[11px] md:text-xs shrink-0 ${
+                  isViewing
+                    ? isDarkMode ? 'text-[#C3FF49]/70' : 'text-black/60'
+                    : isDarkMode ? 'text-white/35' : 'text-black/35'
+                }`}>
+                  {formatTime(task.startTime)} - {formatTime(task.endTime)}
                 </span>
               </button>
             );
