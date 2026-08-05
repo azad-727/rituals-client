@@ -40,7 +40,8 @@ const getMinutesFromMidnight = (time24) => {
 const getTaskStatus = (task, currentMins) => {
   const start = getMinutesFromMidnight(task.startTime);
   const end = getMinutesFromMidnight(task.endTime);
-  if (currentMins >= end) return 'COMPLETED';
+  if (task.completed) return 'DONE';
+  if (currentMins >= end) return 'ENDED';
   if (currentMins >= start && currentMins < end) return 'ACTIVE';
   return 'UPCOMING';
 };
@@ -227,13 +228,21 @@ export default function PulseCanvas() {
         glow: '',
         bgAccent: 'bg-amber-400/5',
       };
-      case 'COMPLETED': return {
-        label: 'DONE',
-        dotColor: 'bg-white/30',
-        textColor: 'text-white/30',
-        borderColor: 'border-white/10',
+      case 'ENDED': return {
+        label: 'ENDED',
+        dotColor: 'bg-red-400/50',
+        textColor: 'text-red-400/60',
+        borderColor: 'border-red-400/20',
         glow: '',
-        bgAccent: 'bg-white/5',
+        bgAccent: 'bg-red-400/5',
+      };
+      case 'DONE': return {
+        label: 'DONE ✓',
+        dotColor: 'bg-[#C3FF49]/40',
+        textColor: 'text-[#C3FF49]/40',
+        borderColor: 'border-[#C3FF49]/15',
+        glow: '',
+        bgAccent: 'bg-[#C3FF49]/5',
       };
       default: return {
         label: '---',
@@ -407,11 +416,13 @@ export default function PulseCanvas() {
 
             {/* Event Title */}
             <h1 className={`font-sans text-2xl sm:text-3xl md:text-5xl font-bold tracking-wide uppercase leading-tight mb-3 md:mb-4 ${
-              status === 'COMPLETED'
+              status === 'DONE'
                 ? isDarkMode ? 'text-white/25 line-through' : 'text-black/25 line-through'
-                : status === 'ACTIVE'
-                  ? isDarkMode ? 'text-white' : 'text-black'
-                  : isDarkMode ? 'text-white/70' : 'text-black/70'
+                : status === 'ENDED'
+                  ? isDarkMode ? 'text-white/40' : 'text-black/40'
+                  : status === 'ACTIVE'
+                    ? isDarkMode ? 'text-white' : 'text-black'
+                    : isDarkMode ? 'text-white/70' : 'text-black/70'
             }`}>
               {currentTask.title}
               {currentTask.emoji && (
@@ -442,9 +453,9 @@ export default function PulseCanvas() {
                 <div
                   className="h-full transition-all duration-1000 ease-linear pulse-progress-bar"
                   style={{
-                    width: `${status === 'COMPLETED' ? 100 : status === 'UPCOMING' ? 0 : progress}%`,
-                    background: status === 'COMPLETED'
-                      ? 'rgba(255,255,255,0.15)'
+                    width: `${(status === 'ENDED' || status === 'DONE') ? 100 : status === 'UPCOMING' ? 0 : progress}%`,
+                    background: (status === 'ENDED' || status === 'DONE')
+                      ? status === 'DONE' ? 'rgba(195,255,73,0.15)' : 'rgba(248,113,113,0.2)'
                       : `linear-gradient(90deg, ${accentColor}, ${accentColor}dd)`,
                     boxShadow: status === 'ACTIVE' ? `0 0 12px ${accentColor}66` : 'none',
                   }}
@@ -527,7 +538,7 @@ export default function PulseCanvas() {
               className={`transition-all duration-300 rounded-full ${
                 idx === activeIndex
                   ? `w-6 md:w-8 h-2 md:h-2.5 ${tStatus === 'ACTIVE' ? 'bg-[#C3FF49]' : tStatus === 'UPCOMING' ? 'bg-amber-400' : 'bg-white/40'}`
-                  : `w-2 md:w-2.5 h-2 md:h-2.5 ${tStatus === 'ACTIVE' ? 'bg-[#C3FF49]/40' : tStatus === 'COMPLETED' ? 'bg-white/10' : 'bg-white/20'} hover:bg-white/30`
+                  : `w-2 md:w-2.5 h-2 md:h-2.5 ${tStatus === 'ACTIVE' ? 'bg-[#C3FF49]/40' : (tStatus === 'ENDED' || tStatus === 'DONE') ? 'bg-white/10' : 'bg-white/20'} hover:bg-white/30`
               }`}
               aria-label={`Go to ${task.title}`}
             />
@@ -561,13 +572,15 @@ export default function PulseCanvas() {
                     ? isDarkMode ? 'bg-[#C3FF49]/10 border-l-2 border-[#C3FF49]' : 'bg-black/5 border-l-2 border-black'
                     : 'border-l-2 border-transparent hover:bg-white/5'
                   }
-                  ${tStatus === 'COMPLETED' && !isViewing ? 'opacity-30' : ''}
+                  ${(tStatus === 'ENDED' || tStatus === 'DONE') && !isViewing ? 'opacity-40' : ''}
                 `}
               >
                 {/* Status dot */}
                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                   tStatus === 'ACTIVE' ? 'bg-[#C3FF49] animate-pulse' :
-                  tStatus === 'UPCOMING' ? 'bg-amber-400' : 'bg-white/20'
+                  tStatus === 'UPCOMING' ? 'bg-amber-400' :
+                  tStatus === 'DONE' ? 'bg-[#C3FF49]/30' :
+                  'bg-red-400/40'
                 }`} />
 
                 {/* Task emoji */}
@@ -577,9 +590,11 @@ export default function PulseCanvas() {
                 <span className={`font-sans text-xs md:text-sm font-semibold tracking-wide uppercase truncate flex-1 ${
                   isViewing
                     ? isDarkMode ? 'text-[#C3FF49]' : 'text-black'
-                    : tStatus === 'COMPLETED'
+                    : tStatus === 'DONE'
                       ? isDarkMode ? 'text-white/30 line-through' : 'text-black/30 line-through'
-                      : isDarkMode ? 'text-white/60' : 'text-black/60'
+                      : tStatus === 'ENDED'
+                        ? isDarkMode ? 'text-white/40' : 'text-black/40'
+                        : isDarkMode ? 'text-white/60' : 'text-black/60'
                 }`}>
                   {task.title}
                 </span>
