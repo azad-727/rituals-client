@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDashboardStore } from '../store/dashboardStore';
 import RoutineBuilder from './RoutineBuilder';
-import autoprefixer from 'autoprefixer';
 
 const formatTime = (time24) => {
   if (!time24) return "";
@@ -19,10 +18,9 @@ const getMinutesFromMidnight = (time24) => {
 };
 
 export default function DashboardCanvas() {
-  const { isDarkMode, userId } = useDashboardStore();
+  const { isDarkMode, userId, tasks, currentDate, setTasks, fetchTodayTasks, syncTasks } = useDashboardStore();
   const token = localStorage.getItem('token');
   
-  const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -30,7 +28,6 @@ export default function DashboardCanvas() {
   const [newTaskEnd, setNewTaskEnd] = useState('13:00');
   
   const [masterTemplate, setMasterTemplate] = useState(null);
-  const [currentDate, setCurrentDate] = useState('');
   const [hasMasterTemplate, setHasMasterTemplate] = useState(true);
   const [isEditingTemplate, setIsEditingTemplate] = useState(false); 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -56,14 +53,12 @@ export default function DashboardCanvas() {
         setShowNightlyInterrogation(true);
       }
       
-      // Calculate exact milliseconds until the next minute boundary to prevent clock drift
       const msUntilNextMinute = 60000 - (Date.now() % 60000);
       timeoutId = setTimeout(tick, msUntilNextMinute);
     };
 
-    tick(); // Run immediately
+    tick();
 
-    // Aggressively resync the clock whenever the user returns to this tab
     const handleVisibility = () => {
       if (!document.hidden) tick();
     };
@@ -95,22 +90,8 @@ export default function DashboardCanvas() {
         setMasterTemplate(templateData);
         setHasMasterTemplate(true);
 
-        const todayRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/today/${userId}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        const todayData = await todayRes.json();
-        
-        const sortedTasks = (todayData.tasks || []).sort((a, b) => 
-          (a.startTime || "00:00").localeCompare(b.startTime || "00:00")
-        );
-        setTasks(sortedTasks);
-        
-        const safeDate = todayData.logDate || todayData.logData || new Date().toLocaleDateString('en-CA');
-        setCurrentDate(safeDate);
+        // Use the shared store's fetch action
+        await fetchTodayTasks();
         setLoading(false);
       } catch (err) {
         console.error("[ SYSTEM ERROR ]:", err.message);
@@ -132,17 +113,16 @@ export default function DashboardCanvas() {
       });
       const updatedLog = await res.json();
       const sortedTasks = (updatedLog.tasks || []).sort((a, b) => (a.startTime || "00:00").localeCompare(b.startTime || "00:00"));
-      setTasks(sortedTasks);
+      setTasks(sortedTasks); // Updates the shared store
       setNewTaskTitle(''); 
     } catch (err) { console.error("Failed to add task:", err); }
   };
 
   const handleToggleTask = async (indexToToggle) => {
     const updatedTasks = [...tasks];
-    const task = updatedTasks[indexToToggle];
+    const task = { ...updatedTasks[indexToToggle] };
     task.completed = !task.completed;
     
-    // FIX: If marked as complete manually, inject the assigned hours into actual time spent.
     if (task.completed) {
       if (!task.actualMinutesSpent || task.actualMinutesSpent === 0) {
         const startMins = getMinutesFromMidnight(task.startTime);
@@ -151,30 +131,16 @@ export default function DashboardCanvas() {
         task.actualMinutesSpent = diff > 0 ? diff : 60;
       }
     } else {
-      // If unchecked, zero out the actual time so it doesn't artificially inflate stats.
       task.actualMinutesSpent = 0;
     }
 
-    setTasks(updatedTasks);
-    try {
-      await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/${userId}/${currentDate}`, {
-        method: 'PUT', 
-        headers: { 'Content-Type': 'application/json','Authorization': `Bearer ${token}` }, 
-        body: JSON.stringify(updatedTasks)
-      });
-    } catch (err) { console.error("Failed to sync task toggle:", err); }
+    updatedTasks[indexToToggle] = task;
+    await syncTasks(updatedTasks); // Updates store + syncs to API
   };
 
   const handleDeleteTask = async (indexToRemove) => {
     const updatedTasks = tasks.filter((_, idx) => idx !== indexToRemove);
-    setTasks(updatedTasks);
-    try {
-      await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/${userId}/${currentDate}`, {
-        method: 'PUT', 
-        headers: { 'Content-Type': 'application/json','Authorization': `Bearer ${token}` }, 
-        body: JSON.stringify(updatedTasks)
-      });
-    } catch (err) { console.error("Failed to sync task deletion:", err); }
+    await syncTasks(updatedTasks); // Updates store + syncs to API
   };
 
   if (loading) {
@@ -234,14 +200,7 @@ export default function DashboardCanvas() {
           <button 
   onClick={async () => {
     try {
-      await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/${userId}/${currentDate}`, {
-        method: 'PUT',
-        headers: { // 🌟 FIXED: Changed 'header' to 'headers'
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(tasks)
-      });
+      await syncTasks(tasks);
       
       setShowNightlyInterrogation(false);
       setRefreshTrigger(prev => prev + 1);
@@ -336,6 +295,7 @@ export default function DashboardCanvas() {
                       {item.completed && <div className={`w-3 h-3 ${isDarkMode ? 'bg-black' : 'bg-white'}`} />}
                     </button>
                     <span className={`font-semibold tracking-wide uppercase break-words pr-2 ${item.completed ? 'line-through opacity-50' : ''} ${isActive ? accentText : ''}`}>
+                      {item.emoji && <span className="mr-2">{item.emoji}</span>}
                       {item.title}
                     </span>
                   </div>

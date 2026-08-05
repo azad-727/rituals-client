@@ -75,12 +75,9 @@ const getTimeRemaining = (task, currentMins) => {
 
 // ─── Main Component ────────────────────────────────────────────────
 export default function PulseCanvas() {
-  const { isDarkMode, userId } = useDashboardStore();
+  const { isDarkMode, userId, tasks, currentDate, dayEmoji, setTasks, fetchTodayTasks, syncTasks, syncDayEmoji } = useDashboardStore();
   const token = localStorage.getItem('token');
 
-  const [tasks, setTasks] = useState([]);
-  const [currentDate, setCurrentDate] = useState('');
-  const [dayEmoji, setDayEmoji] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const [showEmojiPicker, setShowEmojiPicker] = useState(null); // null | 'day' | taskIndex
@@ -115,27 +112,18 @@ export default function PulseCanvas() {
     return () => { clearTimeout(timeoutId); document.removeEventListener('visibilitychange', handleVisibility); };
   }, []);
 
-  // ─── Fetch today's data ────────────────────────────────────────
+  // ─── Fetch today's data (use shared store) ──────────────────────
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/today/${userId}`, {
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        const sortedTasks = (data.tasks || []).sort((a, b) =>
-          (a.startTime || '00:00').localeCompare(b.startTime || '00:00')
-        );
-        setTasks(sortedTasks);
-        setCurrentDate(data.logDate || data.logData || new Date().toLocaleDateString('en-CA'));
-        setDayEmoji(data.dayEmoji || null);
+    const loadData = async () => {
+      // If tasks are already loaded in the store (by ROUTINE tab), skip fetching
+      if (tasks.length > 0) {
         setLoading(false);
-      } catch (err) {
-        console.error('PULSE: Failed to load data:', err);
-        setLoading(false);
+        return;
       }
+      await fetchTodayTasks();
+      setLoading(false);
     };
-    fetchData();
+    loadData();
   }, [userId]);
 
   // ─── Auto-navigate to current event ────────────────────────────
@@ -210,30 +198,14 @@ export default function PulseCanvas() {
   const handleTaskEmoji = async (taskIdx, emoji) => {
     const updatedTasks = [...tasks];
     updatedTasks[taskIdx] = { ...updatedTasks[taskIdx], emoji: updatedTasks[taskIdx].emoji === emoji ? null : emoji };
-    setTasks(updatedTasks);
     setShowEmojiPicker(null);
-
-    try {
-      await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/${userId}/${currentDate}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(updatedTasks)
-      });
-    } catch (err) { console.error('Failed to sync task emoji:', err); }
+    await syncTasks(updatedTasks); // Updates store + syncs to API
   };
 
   const handleDayEmoji = async (emoji) => {
     const newEmoji = dayEmoji === emoji ? null : emoji;
-    setDayEmoji(newEmoji);
     setShowEmojiPicker(null);
-
-    try {
-      await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/rituals/${userId}/${currentDate}/emoji`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ emoji: newEmoji })
-      });
-    } catch (err) { console.error('Failed to sync day emoji:', err); }
+    await syncDayEmoji(newEmoji); // Updates store + syncs to API
   };
 
   // ─── Status Config ─────────────────────────────────────────────
