@@ -37,9 +37,12 @@ const getMinutesFromMidnight = (time24) => {
   return h * 60 + m;
 };
 
+// If end < start, the task crosses midnight — treat end as next day
+const resolveEnd = (start, end) => (end <= start ? end + 1440 : end);
+
 const getTaskStatus = (task, currentMins) => {
   const start = getMinutesFromMidnight(task.startTime);
-  const end = getMinutesFromMidnight(task.endTime);
+  const end = resolveEnd(start, getMinutesFromMidnight(task.endTime));
   if (task.completed) return 'DONE';
   if (currentMins >= end) return 'ENDED';
   if (currentMins >= start && currentMins < end) return 'ACTIVE';
@@ -48,7 +51,7 @@ const getTaskStatus = (task, currentMins) => {
 
 const getProgress = (task, currentMins) => {
   const start = getMinutesFromMidnight(task.startTime);
-  const end = getMinutesFromMidnight(task.endTime);
+  const end = resolveEnd(start, getMinutesFromMidnight(task.endTime));
   const total = end - start;
   if (total <= 0) return 0;
   const elapsed = currentMins - start;
@@ -57,7 +60,7 @@ const getProgress = (task, currentMins) => {
 
 const formatDuration = (task) => {
   const start = getMinutesFromMidnight(task.startTime);
-  const end = getMinutesFromMidnight(task.endTime);
+  const end = resolveEnd(start, getMinutesFromMidnight(task.endTime));
   const diff = end - start;
   if (diff <= 0) return '0m';
   const h = Math.floor(diff / 60);
@@ -66,7 +69,8 @@ const formatDuration = (task) => {
 };
 
 const getTimeRemaining = (task, currentMins) => {
-  const end = getMinutesFromMidnight(task.endTime);
+  const start = getMinutesFromMidnight(task.startTime);
+  const end = resolveEnd(start, getMinutesFromMidnight(task.endTime));
   const remaining = end - currentMins;
   if (remaining <= 0) return 'Done';
   const h = Math.floor(remaining / 60);
